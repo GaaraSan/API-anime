@@ -1,5 +1,7 @@
+require('dotenv').config()
 const Telegraf = require("telegraf").Telegraf;
-const bot = new Telegraf("5623236109:AAEEeeXtS1BEM9tsLjTRpXu_F2QfC8jcyVY");
+const bot = new Telegraf(process.env.BOT_TOKEN);
+const API_TOKEN = process.env.API_TOKEN
 
 bot.start((ctx) => ctx.reply('Welcome'));
 
@@ -13,7 +15,7 @@ function searchByName(animeName) {
     return fetch(`https://anime-db.p.rapidapi.com/anime?page=${page}&size=${size}&search=${animeName}&sortBy=${sortBy}&sortOrder=${sortOrder}`, {
         method: 'GET',
         headers: {
-            'X-RapidAPI-Key': 'bc32b4b7e8msh80bec6c4d847f76p1860bbjsn6f70a022a087',
+            'X-RapidAPI-Key': API_TOKEN,
             'X-RapidAPI-Host': 'anime-db.p.rapidapi.com',
         }})
         .then(res => res.json())
