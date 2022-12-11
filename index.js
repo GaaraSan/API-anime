@@ -466,7 +466,11 @@ bot.action("deleteUserAnime", async ctx=>{
     if (testCategory == "willWatch"){
       await deleteUserAnime(userInDB, "deleteWillWatch", animeId);
     }
-    ctx.reply("Deleted successfuly")
+    ctx.reply("Deleted successfuly",{
+      reply_markup : {
+        keyboard: [mainButtons()],
+        resize_keyboard: true
+      }})
   } else ctx.reply("acces denied");
 }); 
 
@@ -505,19 +509,31 @@ bot.action("removeToNowWatching", async ctx=>{
   let userInDB = await findOrAddUser(ctx.from.id);
   if (testCategory == "watched"){await moveUserAnime(userInDB, "deleteWatched", animeId, "addNowWatching")};
   if (testCategory == "willWatch"){await moveUserAnime(userInDB, "deleteWillWatch", animeId, "addNowWatching")}
-  ctx.reply("Removed successfuly")
+  ctx.reply("Removed successfuly",{
+    reply_markup : {
+      keyboard: [mainButtons()],
+      resize_keyboard: true
+    }})
 });
 bot.action("removeToWillWatch", async ctx=>{
   let userInDB = await findOrAddUser(ctx.from.id);
   if (testCategory == "watched"){await moveUserAnime(userInDB, "deleteWatched", animeId, "addWillWatch")};
   if (testCategory == "nowWatching"){await moveUserAnime(userInDB, "deleteNowWatching", animeId, "addWillWatch")}
-  ctx.reply("Removed successfuly")
+  ctx.reply("Removed successfuly",{
+    reply_markup : {
+      keyboard: [mainButtons()],
+      resize_keyboard: true
+    }})
 });
 bot.action("removeToWatched", async ctx=>{
   let userInDB = await findOrAddUser(ctx.from.id);
   if (testCategory == "nowWatching"){await moveUserAnime(userInDB, "deleteNowWatching", animeId, "addWatched")};
   if (testCategory == "willWatch"){await moveUserAnime(userInDB, "deleteWillWatch", animeId, "addWatched")}
-  ctx.reply("Removed successfuly")
+  ctx.reply("Removed successfuly",{
+    reply_markup : {
+      keyboard: [mainButtons()],
+      resize_keyboard: true
+    }})
 });
 
 
@@ -528,17 +544,29 @@ bot.action("getAnimeDesription", ctx=>{
 bot.action("addWatched", async ctx=>{
   let userInDB = await findOrAddUser(ctx.from.id);
   await addAnimeInUserSaves(userInDB, animeInDB, "addWatched");
-  ctx.reply("Add successfuly");
+  ctx.reply("Add successfuly",{
+    reply_markup : {
+      keyboard: [mainButtons()],
+      resize_keyboard: true
+    }});
 });
 bot.action("addNowWatching", async ctx=>{
   let userInDB = await findOrAddUser(ctx.from.id);
   await addAnimeInUserSaves(userInDB, animeInDB, "addNowWatching");
-  ctx.reply("Add successfuly");
+  ctx.reply("Add successfuly",{
+    reply_markup : {
+      keyboard: [mainButtons()],
+      resize_keyboard: true
+    }});
 });
 bot.action("addWillWatch", async ctx=>{
   let userInDB = await findOrAddUser(ctx.from.id);
   await addAnimeInUserSaves(userInDB, animeInDB, "addWillWatch");
-  ctx.reply("Add successfuly");
+  ctx.reply("Add successfuly",{
+    reply_markup : {
+      keyboard: [mainButtons()],
+      resize_keyboard: true
+    }});
 });
 
 bot.hears(/[A-Z]+/i, async (ctx) => {
