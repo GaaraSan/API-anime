@@ -25,113 +25,151 @@ async function findOrAddUser(chatId) {
     return newUser._id;
   }
   return resultUser._id;
-};
+}
 
-async function findOrAddAnime(title,description,episodesCount,genres,linkPhoto,linkWebsite) {
-    const resultAnime = await Anime.findOne({ 
-        title: title, 
-        description: description, 
-        episodesCount: episodesCount,
-        genres: genres,
-        linkPhoto: linkPhoto,
-        linkWebsite: linkWebsite}
-    );
-  
-    if (resultAnime === null) {
-        const newAnime = await new Anime({
-            title: title,
-            description: description,
-            episodesCount: episodesCount,
-            genres: genres,
-            linkPhoto: linkPhoto,
-            linkWebsite: linkWebsite,
-            }).save();
-            
-      return newAnime._id;
-    }
-    return resultAnime._id;
-};
+async function findOrAddAnime(
+  title,
+  description,
+  episodesCount,
+  genres,
+  linkPhoto,
+  linkWebsite
+) {
+  const resultAnime = await Anime.findOne({
+    title: title,
+    description: description,
+    episodesCount: episodesCount,
+    genres: genres,
+    linkPhoto: linkPhoto,
+    linkWebsite: linkWebsite,
+  });
 
-async function addAnimeInUserSaves(userId, animeId, category){
+  if (resultAnime === null) {
+    const newAnime = await new Anime({
+      title: title,
+      description: description,
+      episodesCount: episodesCount,
+      genres: genres,
+      linkPhoto: linkPhoto,
+      linkWebsite: linkWebsite,
+    }).save();
+
+    return newAnime._id;
+  }
+  return resultAnime._id;
+}
+
+async function addAnimeInUserSaves(userId, animeId, category) {
   switch (category) {
     case "addWatched":
-      await User.updateOne({_id: userId},{
-        $addToSet:{"animelist.watched": animeId}
-      }, {new: true});
+      await User.updateOne(
+        { _id: userId },
+        {
+          $addToSet: { "animelist.watched": animeId },
+        },
+        { new: true }
+      );
       break;
     case "addNowWatching":
-      await User.updateOne({_id: userId},{
-        $addToSet:{"animelist.nowWatching": animeId}
-      }, {new: true});
+      await User.updateOne(
+        { _id: userId },
+        {
+          $addToSet: { "animelist.nowWatching": animeId },
+        },
+        { new: true }
+      );
       break;
     case "addWillWatch":
-      await User.updateOne({_id: userId},{
-        $addToSet:{"animelist.willWatch": animeId}
-      }, {new: true});
+      await User.updateOne(
+        { _id: userId },
+        {
+          $addToSet: { "animelist.willWatch": animeId },
+        },
+        { new: true }
+      );
       break;
     default:
-      console.log("Switch errror")
+      console.log("Switch errror");
       break;
   }
-};
+}
 
-async function getUserAnimes(chatId){
+async function getUserAnimes(chatId) {
   return await User.findOne(
     { chatId: chatId },
     { _id: 0, __v: 0, createdAt: 0, updatedAt: 0 }
-  )
-  .populate({
-  path: "animelist",
-  populate: [
-    {
-    path: "watched",
-    },
-    {
-    path: "nowWatching",
-    },
-    {
-    path: "willWatch",
-    },
-  ],
-  })
+  ).populate({
+    path: "animelist",
+    populate: [
+      {
+        path: "watched",
+      },
+      {
+        path: "nowWatching",
+      },
+      {
+        path: "willWatch",
+      },
+    ],
+  });
   // .exec((err)=>{if (err) throw err;})
 
   // JSON.stringify(result.animelist.watched[0].title);
-};
+}
 
-async function getAnime(animeId){
+async function getAnime(animeId) {
   return await Anime.findOne(
     { _id: animeId },
     { _id: 0, __v: 0, createdAt: 0, updatedAt: 0 }
-  )
-};
+  );
+}
 
-async function deleteUserAnime(chatId, category, animeId){
+async function deleteUserAnime(chatId, category, animeId) {
   switch (category) {
     case "deleteWatched":
-      await User.updateOne({_id: chatId},{
-        $pull:{"animelist.watched": animeId}
-      }, {new: true});
+      await User.updateOne(
+        { _id: chatId },
+        {
+          $pull: { "animelist.watched": animeId },
+        },
+        { new: true }
+      );
       break;
     case "deleteNowWatching":
-      await User.updateOne({_id: chatId},{
-        $pull:{"animelist.nowWatching": animeId}
-      }, {new: true});
+      await User.updateOne(
+        { _id: chatId },
+        {
+          $pull: { "animelist.nowWatching": animeId },
+        },
+        { new: true }
+      );
       break;
     case "deleteWillWatch":
-      await User.updateOne({_id: chatId},{
-        $pull:{"animelist.willWatch": animeId}
-      }, {new: true});
+      await User.updateOne(
+        { _id: chatId },
+        {
+          $pull: { "animelist.willWatch": animeId },
+        },
+        { new: true }
+      );
       break;
     default:
-      console.log("delete switch errror")
+      console.log("delete switch errror");
       break;
   }
-};
+}
 
-async function moveUserAnime(chatId, category, animeId, toCategory){
-  await deleteUserAnime(chatId, category, animeId)
-  await addAnimeInUserSaves(chatId, animeId, toCategory)
-};
+async function moveUserAnime(chatId, category, animeId, toCategory) {
+  await deleteUserAnime(chatId, category, animeId);
+  await addAnimeInUserSaves(chatId, animeId, toCategory);
+}
 
-module.exports = { findOrAddUser, findOrAddAnime, addAnimeInUserSaves, getUserAnimes, getAnime, deleteUserAnime, moveUserAnime };
+module.exports = {
+  findOrAddUser,
+  findOrAddAnime,
+  addAnimeInUserSaves,
+  getUserAnimes,
+  getAnime,
+  deleteUserAnime,
+  moveUserAnime,
+};
