@@ -126,8 +126,7 @@ const getDbButtonsById = (slicedArray, id) => {
   }
 };
 
-bot
-  .start(async (ctx) => {
+bot.start(async (ctx) => {
     if (ctx.chat.id == masterkey) {
       await findOrAddUser(ctx.chat.id);
       ctx.reply("Choose what the bot should do", {
@@ -136,7 +135,7 @@ bot
           resize_keyboard: true,
         },
       });
-    } else ctx.reply("acces denied");
+    } else ctx.reply("acces denied").catch((err) => console.error("error:" + err));;
   })
   .catch((err) => console.error("error:" + err));
 
@@ -148,7 +147,7 @@ bot.hears("Return", (ctx) => {
         resize_keyboard: true,
       },
     });
-  } else ctx.reply("acces denied");
+  } else ctx.reply("acces denied").catch((err) => console.error("error:" + err));
 });
 
 bot.hears("Search anime", (ctx) => {
@@ -159,7 +158,7 @@ bot.hears("Search anime", (ctx) => {
         resize_keyboard: true,
       },
     });
-  } else ctx.reply("acces denied");
+  } else ctx.reply("acces denied").catch((err) => console.error("error:" + err));
 });
 
 bot.hears("My anime list", (ctx) => {
@@ -170,14 +169,14 @@ bot.hears("My anime list", (ctx) => {
         resize_keyboard: true,
       },
     });
-  } else ctx.reply("acces denied");
+  } else ctx.reply("acces denied").catch((err) => console.error("error:" + err));
 });
 
 bot.hears("By the name", (ctx) => {
   if (ctx.chat.id == masterkey) {
     ctx.reply("Enter the title");
     flag = "animeName"; // TODO: Change it to normal telegraf store
-  } else ctx.reply("acces denied");
+  } else ctx.reply("acces denied").catch((err) => console.error("error:" + err));
 });
 
 bot.hears("By the genre", (ctx) => {
@@ -214,7 +213,7 @@ bot.hears("By the genre", (ctx) => {
         ],
       },
     });
-  } else ctx.reply("acces denied");
+  } else ctx.reply("acces denied").catch((err) => console.error("error:" + err));
 });
 
 let testCategory;
@@ -235,7 +234,7 @@ bot.hears("Watched", async (ctx) => {
       },
     });
     testCategory = category;
-  } else ctx.reply("acces denied");
+  } else ctx.reply("acces denied").catch((err) => console.error("error:" + err));
 });
 
 bot.hears("Now watching", async (ctx) => {
@@ -255,7 +254,7 @@ bot.hears("Now watching", async (ctx) => {
       },
     });
     testCategory = category;
-  } else ctx.reply("acces denied");
+  } else ctx.reply("acces denied").catch((err) => console.error("error:" + err));
 });
 
 bot.hears("Will watch", async (ctx) => {
@@ -275,7 +274,7 @@ bot.hears("Will watch", async (ctx) => {
       },
     });
     testCategory = category;
-  } else ctx.reply("acces denied");
+  } else ctx.reply("acces denied").catch((err) => console.error("error:" + err));
 });
 
 bot.action(/^genre-(\w+)/i, async (ctx) => {
@@ -521,7 +520,7 @@ bot.action("deleteUserAnime", async (ctx) => {
         resize_keyboard: true,
       },
     });
-  } else ctx.reply("acces denied");
+  } else ctx.reply("acces denied").catch((err) => console.error("error:" + err));
 });
 
 bot.action("removeUserAnime", (ctx) => {
@@ -666,13 +665,13 @@ bot.hears(/[A-Z]+/i, async (ctx) => {
     } else {
       ctx.reply("You don't need to write anything now ;)");
     }
-  } else ctx.reply("acces denied");
+  } else ctx.reply("acces denied").catch((err) => console.error("error:" + err));
 });
 
 bot.hears(/[А-Я]+/i, async (ctx) => {
   if (ctx.chat.id == masterkey) {
     ctx.reply("I can understand only english language");
-  } else ctx.reply("acces denied");
+  } else ctx.reply("acces denied").catch((err) => console.error("error:" + err));
 });
 
-bot.launch();
+bot.launch();;
