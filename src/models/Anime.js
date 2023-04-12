@@ -1,7 +1,4 @@
-const mongoose = require('mongoose')
-
-const Schema = mongoose.Schema
-const model = mongoose.model
+const { Schema, model } = require('mongoose')
 
 const animeSchema = new Schema({
   title: { type: String, require: true },
