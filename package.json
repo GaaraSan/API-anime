@@ -4,7 +4,8 @@
   "description": "",
   "main": "./src/index.js",
   "scripts": {
-    "start": "nodemon ./src/index.js"
+    "start": "nodemon ./src/index.js",
+    "format": "prettier --write ."
   },
   "author": "",
   "license": "ISC",
