@@ -11,11 +11,11 @@ const {
 } = require('./controllers.js')
 const { searchByName } = require('./api/searchByName')
 const { searchByGenre } = require('./api/searchByGenre')
+const { checkAdmin } = require('./middleware/checkAdmin')
 const bot = new Telegraf(process.env.BOT_TOKEN)
 
 let store = {},
   dbStore = {},
-  masterkey = 682462396,
   flag = 'standart',
   chunkSize = 8
 
@@ -92,158 +92,140 @@ const getDbButtonsById = (slicedArray, id) => {
 }
 
 bot
-  .start(async ctx => {
-    if (ctx.chat.id == masterkey) {
-      await findOrAddUser(ctx.chat.id)
-      ctx.reply('Choose what the bot should do', {
-        reply_markup: {
-          keyboard: [mainButtons()],
-          resize_keyboard: true
-        }
-      })
-    } else ctx.reply('acces denied').catch(err => console.error('error:' + err))
-  })
-  .catch(err => console.error('error:' + err))
-
-bot.hears('Return', ctx => {
-  if (ctx.chat.id == masterkey) {
+  .start(checkAdmin, async ctx => {
+    await findOrAddUser(ctx.chat.id)
     ctx.reply('Choose what the bot should do', {
       reply_markup: {
         keyboard: [mainButtons()],
         resize_keyboard: true
       }
     })
-  } else ctx.reply('acces denied').catch(err => console.error('error:' + err))
+  })
+  .catch(err => console.error('error:' + err))
+
+bot.hears('Return', checkAdmin, ctx => {
+  ctx.reply('Choose what the bot should do', {
+    reply_markup: {
+      keyboard: [mainButtons()],
+      resize_keyboard: true
+    }
+  })
 })
 
-bot.hears('Search anime', ctx => {
-  if (ctx.chat.id == masterkey) {
-    ctx.reply('Select the criteria to search for anime', {
-      reply_markup: {
-        keyboard: [['By the name', 'By the genre'], ['Return']],
-        resize_keyboard: true
-      }
-    })
-  } else ctx.reply('acces denied').catch(err => console.error('error:' + err))
+bot.hears('Search anime', checkAdmin, ctx => {
+  ctx.reply('Select the criteria to search for anime', {
+    reply_markup: {
+      keyboard: [['By the name', 'By the genre'], ['Return']],
+      resize_keyboard: true
+    }
+  })
 })
 
-bot.hears('My anime list', ctx => {
-  if (ctx.chat.id == masterkey) {
-    ctx.reply('Select the category you are interested in', {
-      reply_markup: {
-        keyboard: [['Watched', 'Now watching', 'Will watch'], ['Return']],
-        resize_keyboard: true
-      }
-    })
-  } else ctx.reply('acces denied').catch(err => console.error('error:' + err))
+bot.hears('My anime list', checkAdmin, ctx => {
+  ctx.reply('Select the category you are interested in', {
+    reply_markup: {
+      keyboard: [['Watched', 'Now watching', 'Will watch'], ['Return']],
+      resize_keyboard: true
+    }
+  })
 })
 
-bot.hears('By the name', ctx => {
-  if (ctx.chat.id == masterkey) {
-    ctx.reply('Enter the title')
-    flag = 'animeName' // TODO: Change it to normal telegraf store
-  } else ctx.reply('acces denied').catch(err => console.error('error:' + err))
+bot.hears('By the name', checkAdmin, ctx => {
+  ctx.reply('Enter the title')
+  flag = 'animeName' // TODO: Change it to normal telegraf store
 })
 
-bot.hears('By the genre', ctx => {
-  if (ctx.chat.id == masterkey) {
-    flag = 'animeGenre'
+bot.hears('By the genre', checkAdmin, ctx => {
+  flag = 'animeGenre'
 
-    ctx.replyWithHTML('Choose a genre from the proposed:', {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: 'Award winning', callback_data: 'genre-Award_Winning' },
-            { text: 'Sports', callback_data: 'genre-Sports' }
-          ],
-          [
-            { text: 'Fantasy', callback_data: 'genre-Fantasy' },
-            { text: 'Comedy', callback_data: 'genre-Comedy' }
-          ],
-          [
-            { text: 'Adventure', callback_data: 'genre-Adventure' },
-            { text: 'Action', callback_data: 'genre-Action' }
-          ],
-          [
-            { text: 'Horror', callback_data: 'genre-Horror' },
-            { text: 'Supernatural', callback_data: 'genre-Supernatural' }
-          ],
-          [
-            { text: 'Drama', callback_data: 'genre-Drama' },
-            { text: 'Mystery', callback_data: 'genre-Mystery' }
-          ],
-          [
-            { text: 'Hentai', callback_data: 'genre-Hentai' },
-            { text: 'Romance', callback_data: 'genre-Romance' }
-          ]
+  ctx.replyWithHTML('Choose a genre from the proposed:', {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: 'Award winning', callback_data: 'genre-Award_Winning' },
+          { text: 'Sports', callback_data: 'genre-Sports' }
+        ],
+        [
+          { text: 'Fantasy', callback_data: 'genre-Fantasy' },
+          { text: 'Comedy', callback_data: 'genre-Comedy' }
+        ],
+        [
+          { text: 'Adventure', callback_data: 'genre-Adventure' },
+          { text: 'Action', callback_data: 'genre-Action' }
+        ],
+        [
+          { text: 'Horror', callback_data: 'genre-Horror' },
+          { text: 'Supernatural', callback_data: 'genre-Supernatural' }
+        ],
+        [
+          { text: 'Drama', callback_data: 'genre-Drama' },
+          { text: 'Mystery', callback_data: 'genre-Mystery' }
+        ],
+        [
+          { text: 'Hentai', callback_data: 'genre-Hentai' },
+          { text: 'Romance', callback_data: 'genre-Romance' }
         ]
-      }
-    })
-  } else ctx.reply('acces denied').catch(err => console.error('error:' + err))
+      ]
+    }
+  })
 })
 
 let testCategory
-bot.hears('Watched', async ctx => {
-  if (ctx.chat.id == masterkey) {
-    dbStore.animes = (await getUserAnimes(ctx.chat.id)).animelist.watched
-    const slicedAnimes = sliceIntoChunks(dbStore.animes, chunkSize)
-    let category = 'watched'
+bot.hears('Watched', checkAdmin, async ctx => {
+  dbStore.animes = (await getUserAnimes(ctx.chat.id)).animelist.watched
+  const slicedAnimes = sliceIntoChunks(dbStore.animes, chunkSize)
+  let category = 'watched'
 
-    const inline_keyboard = [
-      ...getDbButtonsById(slicedAnimes, 0),
-      getDbNavigateButtons(0, slicedAnimes.length)
-    ]
+  const inline_keyboard = [
+    ...getDbButtonsById(slicedAnimes, 0),
+    getDbNavigateButtons(0, slicedAnimes.length)
+  ]
 
-    ctx.replyWithHTML(category, {
-      reply_markup: {
-        inline_keyboard: inline_keyboard
-      }
-    })
-    testCategory = category
-  } else ctx.reply('acces denied').catch(err => console.error('error:' + err))
+  ctx.replyWithHTML(category, {
+    reply_markup: {
+      inline_keyboard: inline_keyboard
+    }
+  })
+  testCategory = category
 })
 
-bot.hears('Now watching', async ctx => {
-  if (ctx.chat.id == masterkey) {
-    dbStore.animes = (await getUserAnimes(ctx.chat.id)).animelist.nowWatching
-    const slicedAnimes = sliceIntoChunks(dbStore.animes, chunkSize)
-    let category = 'nowWatching'
+bot.hears('Now watching', checkAdmin, async ctx => {
+  dbStore.animes = (await getUserAnimes(ctx.chat.id)).animelist.nowWatching
+  const slicedAnimes = sliceIntoChunks(dbStore.animes, chunkSize)
+  let category = 'nowWatching'
 
-    const inline_keyboard = [
-      ...getDbButtonsById(slicedAnimes, 0),
-      getDbNavigateButtons(0, slicedAnimes.length)
-    ]
+  const inline_keyboard = [
+    ...getDbButtonsById(slicedAnimes, 0),
+    getDbNavigateButtons(0, slicedAnimes.length)
+  ]
 
-    ctx.replyWithHTML(category, {
-      reply_markup: {
-        inline_keyboard: inline_keyboard
-      }
-    })
-    testCategory = category
-  } else ctx.reply('acces denied').catch(err => console.error('error:' + err))
+  ctx.replyWithHTML(category, {
+    reply_markup: {
+      inline_keyboard: inline_keyboard
+    }
+  })
+  testCategory = category
 })
 
-bot.hears('Will watch', async ctx => {
-  if (ctx.chat.id == masterkey) {
-    dbStore.animes = (await getUserAnimes(ctx.chat.id)).animelist.willWatch
-    const slicedAnimes = sliceIntoChunks(dbStore.animes, chunkSize)
-    let category = 'willWatch'
+bot.hears('Will watch', checkAdmin, async ctx => {
+  dbStore.animes = (await getUserAnimes(ctx.chat.id)).animelist.willWatch
+  const slicedAnimes = sliceIntoChunks(dbStore.animes, chunkSize)
+  let category = 'willWatch'
 
-    const inline_keyboard = [
-      ...getDbButtonsById(slicedAnimes, 0),
-      getDbNavigateButtons(0, slicedAnimes.length)
-    ]
+  const inline_keyboard = [
+    ...getDbButtonsById(slicedAnimes, 0),
+    getDbNavigateButtons(0, slicedAnimes.length)
+  ]
 
-    ctx.replyWithHTML(category, {
-      reply_markup: {
-        inline_keyboard: inline_keyboard
-      }
-    })
-    testCategory = category
-  } else ctx.reply('acces denied').catch(err => console.error('error:' + err))
+  ctx.replyWithHTML(category, {
+    reply_markup: {
+      inline_keyboard: inline_keyboard
+    }
+  })
+  testCategory = category
 })
 
-bot.action(/^genre-(\w+)/i, async ctx => {
+bot.action(/^genre-(\w+)/i, checkAdmin, async ctx => {
   ctx.answerCbQuery()
   animeGenre = ctx.match[1].replace('_', ' ')
 
@@ -465,29 +447,27 @@ bot.action(
   }
 )
 
-bot.action('deleteUserAnime', async ctx => {
-  if (ctx.chat.id == masterkey) {
-    let userInDB = await findOrAddUser(ctx.from.id)
+bot.action('deleteUserAnime', checkAdmin, async ctx => {
+  let userInDB = await findOrAddUser(ctx.from.id)
 
-    if (testCategory == 'watched') {
-      await deleteUserAnime(userInDB, 'deleteWatched', animeId)
+  if (testCategory == 'watched') {
+    await deleteUserAnime(userInDB, 'deleteWatched', animeId)
+  }
+  if (testCategory == 'nowWatching') {
+    await deleteUserAnime(userInDB, 'deleteNowWatching', animeId)
+  }
+  if (testCategory == 'willWatch') {
+    await deleteUserAnime(userInDB, 'deleteWillWatch', animeId)
+  }
+  ctx.reply('Deleted successfuly', {
+    reply_markup: {
+      keyboard: [mainButtons()],
+      resize_keyboard: true
     }
-    if (testCategory == 'nowWatching') {
-      await deleteUserAnime(userInDB, 'deleteNowWatching', animeId)
-    }
-    if (testCategory == 'willWatch') {
-      await deleteUserAnime(userInDB, 'deleteWillWatch', animeId)
-    }
-    ctx.reply('Deleted successfuly', {
-      reply_markup: {
-        keyboard: [mainButtons()],
-        resize_keyboard: true
-      }
-    })
-  } else ctx.reply('acces denied').catch(err => console.error('error:' + err))
+  })
 })
 
-bot.action('removeUserAnime', ctx => {
+bot.action('removeUserAnime', checkAdmin, ctx => {
   if (testCategory == 'watched') {
     ctx.reply('In witch list you wanna remove this anime?', {
       reply_markup: {
@@ -526,7 +506,7 @@ bot.action('removeUserAnime', ctx => {
   }
 })
 
-bot.action('removeToNowWatching', async ctx => {
+bot.action('removeToNowWatching', checkAdmin, async ctx => {
   let userInDB = await findOrAddUser(ctx.from.id)
   if (testCategory == 'watched') {
     await moveUserAnime(userInDB, 'deleteWatched', animeId, 'addNowWatching')
@@ -541,7 +521,7 @@ bot.action('removeToNowWatching', async ctx => {
     }
   })
 })
-bot.action('removeToWillWatch', async ctx => {
+bot.action('removeToWillWatch', checkAdmin, async ctx => {
   let userInDB = await findOrAddUser(ctx.from.id)
   if (testCategory == 'watched') {
     await moveUserAnime(userInDB, 'deleteWatched', animeId, 'addWillWatch')
@@ -556,7 +536,7 @@ bot.action('removeToWillWatch', async ctx => {
     }
   })
 })
-bot.action('removeToWatched', async ctx => {
+bot.action('removeToWatched', checkAdmin, async ctx => {
   let userInDB = await findOrAddUser(ctx.from.id)
   if (testCategory == 'nowWatching') {
     await moveUserAnime(userInDB, 'deleteNowWatching', animeId, 'addWatched')
@@ -572,11 +552,11 @@ bot.action('removeToWatched', async ctx => {
   })
 })
 
-bot.action('getAnimeDesription', ctx => {
+bot.action('getAnimeDesription', checkAdmin, ctx => {
   ctx.reply(getAnimeDesription)
 })
 
-bot.action('addWatched', async ctx => {
+bot.action('addWatched', checkAdmin, async ctx => {
   let userInDB = await findOrAddUser(ctx.from.id)
   await addAnimeInUserSaves(userInDB, animeInDB, 'addWatched')
   ctx.reply('Add successfuly', {
@@ -586,7 +566,7 @@ bot.action('addWatched', async ctx => {
     }
   })
 })
-bot.action('addNowWatching', async ctx => {
+bot.action('addNowWatching', checkAdmin, async ctx => {
   let userInDB = await findOrAddUser(ctx.from.id)
   await addAnimeInUserSaves(userInDB, animeInDB, 'addNowWatching')
   ctx.reply('Add successfuly', {
@@ -596,7 +576,7 @@ bot.action('addNowWatching', async ctx => {
     }
   })
 })
-bot.action('addWillWatch', async ctx => {
+bot.action('addWillWatch', checkAdmin, async ctx => {
   let userInDB = await findOrAddUser(ctx.from.id)
   await addAnimeInUserSaves(userInDB, animeInDB, 'addWillWatch')
   ctx.reply('Add successfuly', {
@@ -607,35 +587,27 @@ bot.action('addWillWatch', async ctx => {
   })
 })
 
-bot.hears(/[A-Z]+/i, async ctx => {
-  if (ctx.chat.id == masterkey) {
-    if (flag === 'animeName') {
-      let animeName = ctx.message.text.toLowerCase()
+bot.hears(/[A-Z]+/i, checkAdmin, async ctx => {
+  if (flag === 'animeName') {
+    let animeName = ctx.message.text.toLowerCase()
 
-      await setStoreAnimesByName(animeName)
+    await setStoreAnimesByName(animeName)
 
-      const slicedAnimes = sliceIntoChunks(store.animes, chunkSize)
+    const slicedAnimes = sliceIntoChunks(store.animes, chunkSize)
 
-      const inline_keyboard = [
-        ...getButtonsById(slicedAnimes, 0),
-        getNavigateButtons(0, slicedAnimes.length)
-      ]
+    const inline_keyboard = [
+      ...getButtonsById(slicedAnimes, 0),
+      getNavigateButtons(0, slicedAnimes.length)
+    ]
 
-      ctx.replyWithHTML(`${animeName}`, {
-        reply_markup: {
-          inline_keyboard: inline_keyboard
-        }
-      })
-    } else {
-      ctx.reply("You don't need to write anything now ;)")
-    }
-  } else ctx.reply('acces denied').catch(err => console.error('error:' + err))
-})
-
-bot.hears(/[А-Я]+/i, async ctx => {
-  if (ctx.chat.id == masterkey) {
-    ctx.reply('I can understand only english language')
-  } else ctx.reply('acces denied').catch(err => console.error('error:' + err))
+    ctx.replyWithHTML(`${animeName}`, {
+      reply_markup: {
+        inline_keyboard: inline_keyboard
+      }
+    })
+  } else {
+    ctx.reply('I don`t understand you :c')
+  }
 })
 
 bot.launch()

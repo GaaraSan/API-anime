@@ -1,4 +1,4 @@
-const { DEFAULT_SEARCH_ARGS, DEFAULT_HEADERS } = require('./api.config')
+const { DEFAULT_SEARCH_ARGS, DEFAULT_HEADERS } = require('./apiConfig')
 
 const API_LINK = process.env.API_LINK
 
