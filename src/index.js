@@ -1,6 +1,5 @@
 require('dotenv').config()
 const Telegraf = require('telegraf').Telegraf
-const { Markup } = require('telegraf')
 const {
   findOrAddUser,
   findOrAddAnime,
@@ -10,18 +9,14 @@ const {
   deleteUserAnime,
   moveUserAnime
 } = require('./controllers.js')
+const { searchByName } = require('./api/searchByName')
+const { searchByGenre } = require('./api/searchByGenre')
 const bot = new Telegraf(process.env.BOT_TOKEN)
-const API_TOKEN = process.env.API_TOKEN
 
 let store = {},
   dbStore = {},
   masterkey = 682462396,
   flag = 'standart',
-  page = 1,
-  sizeName = 100,
-  sizeGenre = 100,
-  sortBy = 'ranking',
-  sortOrder = 'asc',
   chunkSize = 8
 
 const getNavigateButtons = (currentPage, allPages) => {
@@ -41,36 +36,6 @@ const getDbNavigateButtons = (currentPage, allPages) => {
 
 const mainButtons = () => {
   return [{ text: 'Search anime' }, { text: 'My anime list' }]
-}
-
-function searchByName(animeName) {
-  return fetch(
-    `https://anime-db.p.rapidapi.com/anime?page=${page}&size=${sizeName}&search=${animeName}&sortBy=${sortBy}&sortOrder=${sortOrder}`,
-    {
-      method: 'GET',
-      headers: {
-        'X-RapidAPI-Key': API_TOKEN,
-        'X-RapidAPI-Host': 'anime-db.p.rapidapi.com'
-      }
-    }
-  )
-    .then(res => res.json())
-    .catch(err => console.error('error:' + err))
-}
-
-function searchByGenre(animeGenre) {
-  return fetch(
-    `https://anime-db.p.rapidapi.com/anime?page=${page}&size=${sizeGenre}&genres=${animeGenre}&sortBy=${sortBy}&sortOrder=${sortOrder}`,
-    {
-      method: 'GET',
-      headers: {
-        'X-RapidAPI-Key': API_TOKEN,
-        'X-RapidAPI-Host': 'anime-db.p.rapidapi.com'
-      }
-    }
-  )
-    .then(res => res.json())
-    .catch(err => console.error('error:' + err))
 }
 
 function sliceIntoChunks(store, chunkSize) {
