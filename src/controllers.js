@@ -1,7 +1,7 @@
 const mongoose = require('mongoose')
-const Schema = mongoose.Schema
+const MONGODB_URI = process.env.MONGODB_URI
 
-mongoose.connect('mongodb://localhost:27017/anicat_db')
+mongoose.connect(MONGODB_URI)
 
 const User = require('./models/User.js')
 const Anime = require('./models/Anime.js')
