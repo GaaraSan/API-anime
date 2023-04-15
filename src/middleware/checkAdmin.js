@@ -1,7 +1,7 @@
-const MASTERKEY = process.env.MASTERKEY
+const ADMINS = process.env.ADMINS
 
 function checkAdmin(ctx, next) {
-  if (ctx.chat.id == MASTERKEY) {
+  if (ADMINS.includes(ctx.chat.id)) {
     return next()
   }
   ctx
