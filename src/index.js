@@ -1,5 +1,6 @@
 require('dotenv').config()
 const Telegraf = require('telegraf').Telegraf
+const LocalSession = require('telegraf-session-local')
 const {
   findOrAddUser,
   findOrAddAnime,
@@ -14,9 +15,21 @@ const { searchByGenre } = require('./api/searchByGenre')
 const { checkAdmin } = require('./middleware/checkAdmin')
 const bot = new Telegraf(process.env.BOT_TOKEN)
 
-let store = {},
-  dbStore = {},
-  flag = 'standart',
+bot.use(new LocalSession({ database: 'usersSearchType.json' }).middleware())
+
+bot.hears('test', ctx => {
+  ctx.session.searchType = 'By the name'
+  console.log(ctx.session)
+  ctx.reply(`${ctx.session.searchType}`)
+})
+
+bot.hears('test1', ctx => {
+  ctx.session.searchType = 'By the genre'
+  console.log(ctx.session)
+  ctx.reply(`${ctx.session.searchType}`)
+})
+
+let dbStore = {},
   chunkSize = 8
 
 const getNavigateButtons = (currentPage, allPages) => {
@@ -49,15 +62,17 @@ function sliceIntoChunks(store, chunkSize) {
   return res
 }
 
-const setStoreAnimesByName = animeName => {
+const setStoreAnimesByName = (ctx, animeName) => {
+  ctx.session.store = ctx.session.store || {}
   return searchByName(animeName).then(data => {
-    store.animes = data.data
+    ctx.session.store.animes = data.data
   })
 }
 
-const setStoreAnimesByGenre = animeGenre => {
+const setStoreAnimesByGenre = (ctx, animeGenre) => {
+  ctx.session.store = ctx.session.store || {}
   return searchByGenre(animeGenre).then(data => {
-    store.animes = data.data
+    ctx.session.store.animes = data.data
   })
 }
 
@@ -132,11 +147,11 @@ bot.hears('My anime list', checkAdmin, ctx => {
 
 bot.hears('By the name', checkAdmin, ctx => {
   ctx.reply('Enter the title')
-  flag = 'animeName' // TODO: Change it to normal telegraf store
+  ctx.session.searchType = 'animeName'
 })
 
 bot.hears('By the genre', checkAdmin, ctx => {
-  flag = 'animeGenre'
+  ctx.session.searchType = 'animeGenre'
 
   ctx.replyWithHTML('Choose a genre from the proposed:', {
     reply_markup: {
@@ -172,8 +187,11 @@ bot.hears('By the genre', checkAdmin, ctx => {
 
 let testCategory
 bot.hears('Watched', checkAdmin, async ctx => {
-  dbStore.animes = (await getUserAnimes(ctx.chat.id)).animelist.watched
-  const slicedAnimes = sliceIntoChunks(dbStore.animes, chunkSize)
+  ctx.session.dbStore = ctx.session.dbStore || {}
+  ctx.session.dbStore.animes = (
+    await getUserAnimes(ctx.chat.id)
+  ).animelist.watched
+  const slicedAnimes = sliceIntoChunks(ctx.session.dbStore.animes, chunkSize)
   let category = 'watched'
 
   const inline_keyboard = [
@@ -190,8 +208,11 @@ bot.hears('Watched', checkAdmin, async ctx => {
 })
 
 bot.hears('Now watching', checkAdmin, async ctx => {
-  dbStore.animes = (await getUserAnimes(ctx.chat.id)).animelist.nowWatching
-  const slicedAnimes = sliceIntoChunks(dbStore.animes, chunkSize)
+  ctx.session.dbStore = ctx.session.dbStore || {}
+  ctx.session.dbStore.animes = (
+    await getUserAnimes(ctx.chat.id)
+  ).animelist.nowWatching
+  const slicedAnimes = sliceIntoChunks(ctx.session.dbStore.animes, chunkSize)
   let category = 'nowWatching'
 
   const inline_keyboard = [
@@ -208,8 +229,11 @@ bot.hears('Now watching', checkAdmin, async ctx => {
 })
 
 bot.hears('Will watch', checkAdmin, async ctx => {
-  dbStore.animes = (await getUserAnimes(ctx.chat.id)).animelist.willWatch
-  const slicedAnimes = sliceIntoChunks(dbStore.animes, chunkSize)
+  ctx.session.dbStore = ctx.session.dbStore || {}
+  ctx.session.dbStore.animes = (
+    await getUserAnimes(ctx.chat.id)
+  ).animelist.willWatch
+  const slicedAnimes = sliceIntoChunks(ctx.session.dbStore.animes, chunkSize)
   let category = 'willWatch'
 
   const inline_keyboard = [
@@ -229,8 +253,8 @@ bot.action(/^genre-(\w+)/i, checkAdmin, async ctx => {
   ctx.answerCbQuery()
   animeGenre = ctx.match[1].replace('_', ' ')
 
-  await setStoreAnimesByGenre(animeGenre)
-  const slicedAnimes = sliceIntoChunks(store.animes, chunkSize)
+  await setStoreAnimesByGenre(ctx, animeGenre)
+  const slicedAnimes = sliceIntoChunks(ctx.session.store.animes, chunkSize)
 
   const inline_keyboard = [
     ...getButtonsById(slicedAnimes, 0),
@@ -257,7 +281,7 @@ bot.action(
     } else {
       pageNumber--
 
-      const slicedAnimes = sliceIntoChunks(store.animes, chunkSize)
+      const slicedAnimes = sliceIntoChunks(ctx.session.store.animes, chunkSize)
 
       const inline_keyboard = [
         ...getButtonsById(slicedAnimes, pageNumber),
@@ -279,7 +303,7 @@ bot.action(
   },
   ctx => {
     let pageNumber = Number(ctx.callbackQuery.data.replace('list-next-', ''))
-    const slicedAnimes = sliceIntoChunks(store.animes, chunkSize)
+    const slicedAnimes = sliceIntoChunks(ctx.session.store.animes, chunkSize)
 
     if (pageNumber + 1 > slicedAnimes.length - 1) {
       pageNumber - 1 == slicedAnimes.length
@@ -311,7 +335,10 @@ bot.action(
     } else {
       pageNumber--
 
-      const slicedAnimes = sliceIntoChunks(dbStore.animes, chunkSize)
+      const slicedAnimes = sliceIntoChunks(
+        ctx.session.dbStore.animes,
+        chunkSize
+      )
 
       const inline_keyboard = [
         ...getDbButtonsById(slicedAnimes, pageNumber),
@@ -333,7 +360,7 @@ bot.action(
   },
   ctx => {
     let pageNumber = Number(ctx.callbackQuery.data.replace('list-db-next-', ''))
-    const slicedAnimes = sliceIntoChunks(dbStore.animes, chunkSize)
+    const slicedAnimes = sliceIntoChunks(ctx.session.dbStore.animes, chunkSize)
 
     if (pageNumber + 1 > slicedAnimes.length - 1) {
       pageNumber - 1 == slicedAnimes.length
@@ -365,7 +392,7 @@ bot.action(
     // const id = Number(ctx.callbackQuery.data.replace("list-item-", ""));
     const id = ctx.callbackQuery.data.replace('list-item-', '')
 
-    let singleAnime = store.animes.find(value => {
+    let singleAnime = ctx.session.store.animes.find(value => {
       return value._id === String(id)
     })
 
@@ -436,7 +463,7 @@ bot.action(
             ],
             [
               { text: 'Delete', callback_data: 'deleteUserAnime' },
-              { text: 'Remove', callback_data: 'removeUserAnime' }
+              { text: 'Move', callback_data: 'removeUserAnime' }
             ]
           ]
         }
@@ -469,7 +496,7 @@ bot.action('deleteUserAnime', checkAdmin, async ctx => {
 
 bot.action('removeUserAnime', checkAdmin, ctx => {
   if (testCategory == 'watched') {
-    ctx.reply('In witch list you wanna remove this anime?', {
+    ctx.reply('In witch list you wanna move this anime?', {
       reply_markup: {
         inline_keyboard: [
           [
@@ -481,7 +508,7 @@ bot.action('removeUserAnime', checkAdmin, ctx => {
     })
   }
   if (testCategory == 'nowWatching') {
-    ctx.reply('In witch list you wanna remove this anime?', {
+    ctx.reply('In witch list you wanna move this anime?', {
       reply_markup: {
         inline_keyboard: [
           [
@@ -493,7 +520,7 @@ bot.action('removeUserAnime', checkAdmin, ctx => {
     })
   }
   if (testCategory == 'willWatch') {
-    ctx.reply('In witch list you wanna remove this anime?', {
+    ctx.reply('In witch list you wanna move this anime?', {
       reply_markup: {
         inline_keyboard: [
           [
@@ -514,7 +541,7 @@ bot.action('removeToNowWatching', checkAdmin, async ctx => {
   if (testCategory == 'willWatch') {
     await moveUserAnime(userInDB, 'deleteWillWatch', animeId, 'addNowWatching')
   }
-  ctx.reply('Removed successfuly', {
+  ctx.reply('Moved successfuly', {
     reply_markup: {
       keyboard: [mainButtons()],
       resize_keyboard: true
@@ -529,7 +556,7 @@ bot.action('removeToWillWatch', checkAdmin, async ctx => {
   if (testCategory == 'nowWatching') {
     await moveUserAnime(userInDB, 'deleteNowWatching', animeId, 'addWillWatch')
   }
-  ctx.reply('Removed successfuly', {
+  ctx.reply('Moved successfuly', {
     reply_markup: {
       keyboard: [mainButtons()],
       resize_keyboard: true
@@ -544,7 +571,7 @@ bot.action('removeToWatched', checkAdmin, async ctx => {
   if (testCategory == 'willWatch') {
     await moveUserAnime(userInDB, 'deleteWillWatch', animeId, 'addWatched')
   }
-  ctx.reply('Removed successfuly', {
+  ctx.reply('Moved successfuly', {
     reply_markup: {
       keyboard: [mainButtons()],
       resize_keyboard: true
@@ -588,12 +615,12 @@ bot.action('addWillWatch', checkAdmin, async ctx => {
 })
 
 bot.hears(/[A-Z]+/i, checkAdmin, async ctx => {
-  if (flag === 'animeName') {
+  if (ctx.session.searchType === 'animeName') {
     let animeName = ctx.message.text.toLowerCase()
 
-    await setStoreAnimesByName(animeName)
+    await setStoreAnimesByName(ctx, animeName)
 
-    const slicedAnimes = sliceIntoChunks(store.animes, chunkSize)
+    const slicedAnimes = sliceIntoChunks(ctx.session.store.animes, chunkSize)
 
     const inline_keyboard = [
       ...getButtonsById(slicedAnimes, 0),
