@@ -161,6 +161,16 @@ async function moveUserAnime(chatId, category, animeId, toCategory) {
   await addAnimeInUserSaves(chatId, animeId, toCategory)
 }
 
+function usersCount(ctx) {
+  User.find().count(function (err, count) {
+    if (err) {
+      console.log('can`t count users: ', err)
+    } else {
+      ctx.reply(`Bot is used by ${count} users`)
+    }
+  })
+}
+
 module.exports = {
   findOrAddUser,
   findOrAddAnime,
@@ -168,5 +178,6 @@ module.exports = {
   getUserAnimes,
   getAnime,
   deleteUserAnime,
-  moveUserAnime
+  moveUserAnime,
+  usersCount
 }

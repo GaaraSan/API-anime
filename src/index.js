@@ -8,7 +8,8 @@ const {
   getUserAnimes,
   getAnime,
   deleteUserAnime,
-  moveUserAnime
+  moveUserAnime,
+  usersCount
 } = require('./controllers.js')
 const { searchByName } = require('./api/searchByName')
 const { searchByGenre } = require('./api/searchByGenre')
@@ -17,20 +18,9 @@ const bot = new Telegraf(process.env.BOT_TOKEN)
 
 bot.use(new LocalSession({ database: 'usersSearchType.json' }).middleware())
 
-bot.hears('test', ctx => {
-  ctx.session.searchType = 'By the name'
-  console.log(ctx.session)
-  ctx.reply(`${ctx.session.searchType}`)
-})
+bot.command('usersCount', checkAdmin, ctx => usersCount(ctx))
 
-bot.hears('test1', ctx => {
-  ctx.session.searchType = 'By the genre'
-  console.log(ctx.session)
-  ctx.reply(`${ctx.session.searchType}`)
-})
-
-let dbStore = {},
-  chunkSize = 8
+let chunkSize = 8
 
 const getNavigateButtons = (currentPage, allPages) => {
   return [
@@ -107,18 +97,20 @@ const getDbButtonsById = (slicedArray, id) => {
 }
 
 bot
-  .start(checkAdmin, async ctx => {
+  .start(async ctx => {
     await findOrAddUser(ctx.chat.id)
-    ctx.reply('Choose what the bot should do', {
-      reply_markup: {
-        keyboard: [mainButtons()],
-        resize_keyboard: true
-      }
-    })
+    ctx
+      .reply('Choose what the bot should do', {
+        reply_markup: {
+          keyboard: [mainButtons()],
+          resize_keyboard: true
+        }
+      })
+      .catch(err => console.error('error:' + err))
   })
   .catch(err => console.error('error:' + err))
 
-bot.hears('Return', checkAdmin, ctx => {
+bot.hears('Return', ctx => {
   ctx.reply('Choose what the bot should do', {
     reply_markup: {
       keyboard: [mainButtons()],
@@ -127,7 +119,7 @@ bot.hears('Return', checkAdmin, ctx => {
   })
 })
 
-bot.hears('Search anime', checkAdmin, ctx => {
+bot.hears('Search anime', ctx => {
   ctx.reply('Select the criteria to search for anime', {
     reply_markup: {
       keyboard: [['By the name', 'By the genre'], ['Return']],
@@ -136,7 +128,7 @@ bot.hears('Search anime', checkAdmin, ctx => {
   })
 })
 
-bot.hears('My anime list', checkAdmin, ctx => {
+bot.hears('My anime list', ctx => {
   ctx.reply('Select the category you are interested in', {
     reply_markup: {
       keyboard: [['Watched', 'Now watching', 'Will watch'], ['Return']],
@@ -145,12 +137,12 @@ bot.hears('My anime list', checkAdmin, ctx => {
   })
 })
 
-bot.hears('By the name', checkAdmin, ctx => {
+bot.hears('By the name', ctx => {
   ctx.reply('Enter the title')
   ctx.session.searchType = 'animeName'
 })
 
-bot.hears('By the genre', checkAdmin, ctx => {
+bot.hears('By the genre', ctx => {
   ctx.session.searchType = 'animeGenre'
 
   ctx.replyWithHTML('Choose a genre from the proposed:', {
@@ -186,7 +178,7 @@ bot.hears('By the genre', checkAdmin, ctx => {
 })
 
 let testCategory
-bot.hears('Watched', checkAdmin, async ctx => {
+bot.hears('Watched', async ctx => {
   ctx.session.dbStore = ctx.session.dbStore || {}
   ctx.session.dbStore.animes = (
     await getUserAnimes(ctx.chat.id)
@@ -207,7 +199,7 @@ bot.hears('Watched', checkAdmin, async ctx => {
   testCategory = category
 })
 
-bot.hears('Now watching', checkAdmin, async ctx => {
+bot.hears('Now watching', async ctx => {
   ctx.session.dbStore = ctx.session.dbStore || {}
   ctx.session.dbStore.animes = (
     await getUserAnimes(ctx.chat.id)
@@ -228,7 +220,7 @@ bot.hears('Now watching', checkAdmin, async ctx => {
   testCategory = category
 })
 
-bot.hears('Will watch', checkAdmin, async ctx => {
+bot.hears('Will watch', async ctx => {
   ctx.session.dbStore = ctx.session.dbStore || {}
   ctx.session.dbStore.animes = (
     await getUserAnimes(ctx.chat.id)
@@ -249,7 +241,7 @@ bot.hears('Will watch', checkAdmin, async ctx => {
   testCategory = category
 })
 
-bot.action(/^genre-(\w+)/i, checkAdmin, async ctx => {
+bot.action(/^genre-(\w+)/i, async ctx => {
   ctx.answerCbQuery()
   animeGenre = ctx.match[1].replace('_', ' ')
 
@@ -389,7 +381,6 @@ bot.action(
     return false
   },
   async ctx => {
-    // const id = Number(ctx.callbackQuery.data.replace("list-item-", ""));
     const id = ctx.callbackQuery.data.replace('list-item-', '')
 
     let singleAnime = ctx.session.store.animes.find(value => {
@@ -474,7 +465,7 @@ bot.action(
   }
 )
 
-bot.action('deleteUserAnime', checkAdmin, async ctx => {
+bot.action('deleteUserAnime', async ctx => {
   let userInDB = await findOrAddUser(ctx.from.id)
 
   if (testCategory == 'watched') {
@@ -494,7 +485,7 @@ bot.action('deleteUserAnime', checkAdmin, async ctx => {
   })
 })
 
-bot.action('removeUserAnime', checkAdmin, ctx => {
+bot.action('removeUserAnime', ctx => {
   if (testCategory == 'watched') {
     ctx.reply('In witch list you wanna move this anime?', {
       reply_markup: {
@@ -533,7 +524,7 @@ bot.action('removeUserAnime', checkAdmin, ctx => {
   }
 })
 
-bot.action('removeToNowWatching', checkAdmin, async ctx => {
+bot.action('removeToNowWatching', async ctx => {
   let userInDB = await findOrAddUser(ctx.from.id)
   if (testCategory == 'watched') {
     await moveUserAnime(userInDB, 'deleteWatched', animeId, 'addNowWatching')
@@ -548,7 +539,7 @@ bot.action('removeToNowWatching', checkAdmin, async ctx => {
     }
   })
 })
-bot.action('removeToWillWatch', checkAdmin, async ctx => {
+bot.action('removeToWillWatch', async ctx => {
   let userInDB = await findOrAddUser(ctx.from.id)
   if (testCategory == 'watched') {
     await moveUserAnime(userInDB, 'deleteWatched', animeId, 'addWillWatch')
@@ -563,7 +554,7 @@ bot.action('removeToWillWatch', checkAdmin, async ctx => {
     }
   })
 })
-bot.action('removeToWatched', checkAdmin, async ctx => {
+bot.action('removeToWatched', async ctx => {
   let userInDB = await findOrAddUser(ctx.from.id)
   if (testCategory == 'nowWatching') {
     await moveUserAnime(userInDB, 'deleteNowWatching', animeId, 'addWatched')
@@ -579,11 +570,11 @@ bot.action('removeToWatched', checkAdmin, async ctx => {
   })
 })
 
-bot.action('getAnimeDesription', checkAdmin, ctx => {
+bot.action('getAnimeDesription', ctx => {
   ctx.reply(getAnimeDesription)
 })
 
-bot.action('addWatched', checkAdmin, async ctx => {
+bot.action('addWatched', async ctx => {
   let userInDB = await findOrAddUser(ctx.from.id)
   await addAnimeInUserSaves(userInDB, animeInDB, 'addWatched')
   ctx.reply('Add successfuly', {
@@ -593,7 +584,7 @@ bot.action('addWatched', checkAdmin, async ctx => {
     }
   })
 })
-bot.action('addNowWatching', checkAdmin, async ctx => {
+bot.action('addNowWatching', async ctx => {
   let userInDB = await findOrAddUser(ctx.from.id)
   await addAnimeInUserSaves(userInDB, animeInDB, 'addNowWatching')
   ctx.reply('Add successfuly', {
@@ -603,7 +594,7 @@ bot.action('addNowWatching', checkAdmin, async ctx => {
     }
   })
 })
-bot.action('addWillWatch', checkAdmin, async ctx => {
+bot.action('addWillWatch', async ctx => {
   let userInDB = await findOrAddUser(ctx.from.id)
   await addAnimeInUserSaves(userInDB, animeInDB, 'addWillWatch')
   ctx.reply('Add successfuly', {
@@ -614,7 +605,7 @@ bot.action('addWillWatch', checkAdmin, async ctx => {
   })
 })
 
-bot.hears(/[A-Z]+/i, checkAdmin, async ctx => {
+bot.hears(/[A-Z]+/i, async ctx => {
   if (ctx.session.searchType === 'animeName') {
     let animeName = ctx.message.text.toLowerCase()
 
@@ -633,7 +624,9 @@ bot.hears(/[A-Z]+/i, checkAdmin, async ctx => {
       }
     })
   } else {
-    ctx.reply('I don`t understand you :c')
+    ctx
+      .reply('I don`t understand you :c')
+      .catch(err => console.error('error:' + err))
   }
 })
 
